@@ -1,0 +1,417 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+:root.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+:root.light {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@keyframes flash-diagonal {
+  0% {
+    left: 150%;
+    top: -200%;
+    opacity: 1;
+  }
+  100% {
+    left: -150%;
+    top: 200%;
+    opacity: 0;
+  }
+}
+
+.animate-flash-diagonal {
+  position: absolute;
+  height: 300%;
+  width: 40px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.8),
+    rgba(255, 255, 255, 0)
+  );
+  transform: rotate(45deg);
+  animation: flash-diagonal 0.5s ease-in-out forwards;
+}
+/* Add these theme-specific styles */
+.dark .bg-gray-900 {
+  background-color: #111827;
+}
+
+.light .bg-gray-900 {
+  background-color: #f3f4f6;
+}
+
+.light .text-gray-300 {
+  color: #4b5563;
+}
+
+.light .border-gray-800 {
+  border-color: #e5e7eb;
+}
+
+.light .bg-gray-800 {
+  background-color: #ffffff;
+}
+
+/* Custom animations */
+@keyframes flash-across {
+  0% {
+    opacity: 0;
+    transform: translateX(-120%);
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(220%);
+  }
+}
+
+.animate-flash-across div div {
+  animation: flash-across 1.5s ease-in-out;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Custom grid layouts for post media */
+.grid-cols-1fr-1fr {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  grid-auto-rows: auto;
+  grid-template-areas:
+    "a b"
+    "a c";
+  gap: 12px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .grid-cols-1fr-1fr {
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+    grid-template-areas:
+      "a"
+      "b"
+      "c";
+    gap: 12px;
+  }
+}
+
+.grid-cols-1fr-1fr > div:nth-child(1) {
+  grid-area: a;
+}
+
+.grid-cols-1fr-1fr > div:nth-child(2) {
+  grid-area: b;
+}
+
+.grid-cols-1fr-1fr > div:nth-child(3) {
+  grid-area: c;
+}
+
+/* Special class for the first image in the grid */
+.first-image {
+  grid-area: a !important;
+  min-height: 400px;
+  max-height: 500px;
+}
+
+/* Media grid layouts */
+.grid-cols-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: auto;
+  grid-auto-flow: dense;
+  gap: 12px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.grid-cols-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: auto;
+  grid-auto-flow: dense;
+  gap: 12px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .grid-cols-2,
+  .grid-cols-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+  .grid-cols-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Media container with natural aspect ratios */
+.media-item {
+  position: relative;
+  overflow: hidden;
+  min-height: 150px;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Single image container */
+.flex .media-item {
+  width: 100%;
+  max-width: 900px;
+  height: auto;
+  max-height: 600px;
+}
+
+/* Image container for all images */
+.media-item img,
+.media-item video {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Base styles for different orientations with more accurate aspect ratios */
+.portrait-image {
+  min-height: 280px;
+  max-height: 420px;
+}
+
+.landscape-image {
+  min-height: 240px;
+  max-height: 360px;
+}
+
+.square-image {
+  min-height: 260px;
+  max-height: 400px;
+}
+
+.extra-wide-image {
+  min-height: 200px;
+  max-height: 320px;
+}
+
+.extra-tall-image {
+  min-height: 350px;
+  max-height: 480px;
+}
+
+/* Image placeholder for loading state */
+.media-item::before {
+  content: "";
+  display: block;
+  padding-top: 75%; /* Default 4:3 aspect ratio placeholder */
+}
+
+/* Override placeholder for known image types */
+.portrait-image::before {
+  padding-top: 133.33%; /* 3:4 aspect ratio */
+}
+
+.landscape-image::before {
+  padding-top: 75%; /* 4:3 aspect ratio */
+}
+
+.square-image::before {
+  padding-top: 100%; /* 1:1 aspect ratio */
+}
+
+.extra-wide-image::before {
+  padding-top: 56.25%; /* 16:9 aspect ratio */
+}
+
+.extra-tall-image::before {
+  padding-top: 150%; /* 2:3 aspect ratio */
+}
+
+/* Hover effect for media items */
+.media-item {
+  transition: transform 0.2s ease-out, border-color 0.2s ease;
+  overflow: hidden;
+  position: relative;
+}
+
+.media-item:hover {
+  z-index: 1;
+}
+
+/* Video play button animation */
+.video-play-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px;
+  height: 60px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.video-play-btn svg {
+  fill: white;
+  width: 24px;
+  height: 24px;
+}
+
+.media-item:hover .video-play-btn {
+  transform: translate(-50%, -50%) scale(1.1);
+  background: rgba(79, 70, 229, 0.8);
+}
+
+/* Text-only post styling */
+.text-post-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.text-post-container p {
+  position: relative;
+  z-index: 1;
+  transition: transform 0.2s ease;
+}
+
+.text-post-container:hover p {
+  transform: translateY(-2px);
+}
+
+.text-post-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 4px;
+  background: linear-gradient(
+    to bottom,
+    theme("colors.purple.500"),
+    theme("colors.indigo.500")
+  );
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.text-post-container:hover::before {
+  opacity: 1;
+}
+
+/* Media viewer navigation */
+.media-viewer-nav-button {
+  opacity: 0.7;
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+}
+
+.media-viewer-nav-button:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* Slide transition animation for media changes */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-right {
+  animation: slide-in-right 0.2s forwards;
+}
+
+.slide-in-left {
+  animation: slide-in-left 0.2s forwards;
+}
+
+/* Media counter styling */
+.media-counter {
+  backdrop-filter: blur(8px);
+  transition: opacity 0.3s ease;
+  opacity: 0.7;
+}
+
+.media-counter:hover {
+  opacity: 1;
+}
+
+/* Hide navigation arrows initially and show on hover */
+.media-viewer-container .media-viewer-nav-button {
+  opacity: 0.5;
+}
+
+.media-viewer-container:hover .media-viewer-nav-button {
+  opacity: 0.8;
+}
+
+/* Masonry Layout for Post Media */
+/* These styles have been removed as we're now using react-plock */
+
+/* Custom ping animation with delay */
+@keyframes custom-ping {
+  0%,
+  100% {
+    /* Start and end state (includes pause) */
+    transform: scale(1);
+    opacity: 0;
+  }
+  30% {
+    /* Mid-point of visual effect */
+    transform: scale(1.5);
+    opacity: 0.6;
+  }
+  60% {
+    /* End of visual effect (start of pause) */
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+.animate-custom-ping {
+  animation: custom-ping 2.5s cubic-bezier(0, 0, 0.2, 1) infinite; /* 1.5s visual + 1s pause */
+}
