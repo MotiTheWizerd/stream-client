@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { ClientPostMediaItem } from "../types/posts";
 import { ReactionType } from "../components/ReactionSelector";
 
@@ -29,18 +29,25 @@ const useMediaReactions = ({
     Record<string, Record<ReactionType, number>>
   >({});
 
+  // State for temporary optimistic reaction counts
+  const [optimisticMediaReactionCounts, setOptimisticMediaReactionCounts] =
+    useState<Record<string, Record<ReactionType, number>>>({});
+
   // Track the last activated media ID to prevent race conditions
   const lastMediaIdRef = useRef<string | null>(null);
 
-  // Keep track of whether we've initialized
-  const isInitializedRef = useRef(false);
+  // Memoize list of media IDs with optimistic updates
+  const optimisticMediaIds = useMemo(
+    () => Object.keys(optimisticMediaReactionCounts),
+    [optimisticMediaReactionCounts]
+  );
 
   // Initialize media reactions from mediaItems
   useEffect(() => {
-    // Only run this once on initial render
-    if (isInitializedRef.current || !mediaItems.length) return;
-    isInitializedRef.current = true;
+    // Skip effect if no media items
+    if (!mediaItems.length) return;
 
+    // Extract user reactions from media items
     const initialUserReactions: Record<string, ReactionType | null> = {};
     const initialReactionCounts: Record<
       string,
@@ -49,23 +56,51 @@ const useMediaReactions = ({
 
     mediaItems.forEach((media) => {
       if (media.id) {
+        // Set user reaction if available
         if (media.userReaction) {
           initialUserReactions[media.id] = media.userReaction;
         }
+
+        // Set reaction counts if available
         if (media.reactionCounts) {
           initialReactionCounts[media.id] = media.reactionCounts;
         }
       }
     });
 
+    // Only update state if we have data and it's different from current state
     if (Object.keys(initialUserReactions).length > 0) {
-      setUserMediaReactions(initialUserReactions);
+      // Compare with current state to avoid unnecessary updates
+      setUserMediaReactions((prevState) => {
+        const newState = { ...prevState };
+
+        // Only update reactions for media that don't have optimistic updates pending
+        Object.keys(initialUserReactions).forEach((id) => {
+          if (!optimisticMediaIds.includes(id)) {
+            newState[id] = initialUserReactions[id];
+          }
+        });
+
+        return newState;
+      });
     }
 
     if (Object.keys(initialReactionCounts).length > 0) {
-      setMediaReactionCounts(initialReactionCounts);
+      // Compare with current state to avoid unnecessary updates
+      setMediaReactionCounts((prevState) => {
+        const newState = { ...prevState };
+
+        // Only update counts for media that don't have optimistic updates pending
+        Object.keys(initialReactionCounts).forEach((id) => {
+          if (!optimisticMediaIds.includes(id)) {
+            newState[id] = initialReactionCounts[id];
+          }
+        });
+
+        return newState;
+      });
     }
-  }, [mediaItems]);
+  }, [mediaItems, optimisticMediaIds]);
 
   // Handle selecting a reaction for media
   const handleMediaReactionSelect = useCallback(
@@ -86,14 +121,7 @@ const useMediaReactions = ({
       setUserMediaReactions((prev) => ({ ...prev, [mediaId]: newReaction }));
 
       // Calculate and set optimistic counts
-      const currentCounts = mediaReactionCounts[mediaId] ?? {
-        LIKE: 0,
-        LOVE: 0,
-        HAHA: 0,
-        WOW: 0,
-        SAD: 0,
-        ANGRY: 0,
-      };
+      const currentCounts = mediaReactionCounts[mediaId] ?? {};
       const updatedCounts = { ...currentCounts };
 
       // Decrement previous reaction count if it existed
@@ -107,12 +135,11 @@ const useMediaReactions = ({
       if (newReaction) {
         updatedCounts[newReaction] = (updatedCounts[newReaction] || 0) + 1;
       }
-
-      // Update media reaction counts with the optimistic update
-      setMediaReactionCounts((prev) => ({
+      setOptimisticMediaReactionCounts((prev) => ({
         ...prev,
         [mediaId]: updatedCounts,
       }));
+      // --- End Optimistic UI Update ---
 
       // --- Server Request ---
       try {
@@ -137,6 +164,12 @@ const useMediaReactions = ({
             ...prev,
             [mediaId]: previousReaction,
           }));
+          // Clear optimistic counts
+          setOptimisticMediaReactionCounts((prev) => {
+            const newState = { ...prev };
+            delete newState[mediaId];
+            return newState;
+          });
 
           const errorData = await response.json().catch(() => ({}));
           throw new Error(
@@ -153,6 +186,12 @@ const useMediaReactions = ({
           updatedData.reactionCounts !== undefined &&
           updatedData.userReaction !== undefined
         ) {
+          console.log("Server response for media reaction:", {
+            mediaId,
+            userReaction: updatedData.userReaction,
+            reactionCounts: updatedData.reactionCounts,
+          });
+
           // Update our internal state with server-confirmed data
           setUserMediaReactions((prev) => ({
             ...prev,
@@ -170,6 +209,18 @@ const useMediaReactions = ({
             updatedData.reactionCounts,
             updatedData.userReaction
           );
+
+          // Clear optimistic counts after a small delay to ensure UI stability
+          setTimeout(() => {
+            setOptimisticMediaReactionCounts((prev) => {
+              const newState = { ...prev };
+              delete newState[mediaId];
+              return newState;
+            });
+          }, 500);
+
+          // Log successful update for debugging
+          console.log(`Media reaction updated: ${mediaId}`, updatedData);
         }
       } catch (error) {
         console.error("Error saving media reaction:", error);
@@ -178,11 +229,18 @@ const useMediaReactions = ({
           ...prev,
           [mediaId]: previousReaction,
         }));
+        // Clear optimistic counts
+        setOptimisticMediaReactionCounts((prev) => {
+          const newState = { ...prev };
+          delete newState[mediaId];
+          return newState;
+        });
       }
     },
     [
       mediaItems,
       onMediaReactionUpdate,
+      optimisticMediaReactionCounts,
       mediaReactionCounts,
       userMediaReactions,
       authToken,
@@ -192,7 +250,17 @@ const useMediaReactions = ({
 
   return {
     userMediaReactions,
-    optimisticMediaReactionCounts: mediaReactionCounts,
+    // Return a combined object of confirmed and optimistic counts
+    // Optimistic counts take precedence during updates
+    optimisticMediaReactionCounts: Object.keys(
+      optimisticMediaReactionCounts
+    ).reduce(
+      (acc, mediaId) => {
+        acc[mediaId] = optimisticMediaReactionCounts[mediaId];
+        return acc;
+      },
+      { ...mediaReactionCounts }
+    ),
     handleMediaReactionSelect,
   };
 };

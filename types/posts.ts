@@ -25,7 +25,8 @@ export interface Post {
   content: string;
   createdAt: string;
   author: Author;
-  mediaUrls: MediaItem[];
+  mediaUrls: MediaItem[]; // Keep old one temporarily if needed elsewhere, but ideally remove
+  mediaItems: ClientPostMediaItem[]; // Use the new interface
   visibility: "PUBLIC" | "SUBSCRIBERS";
   allowComments: boolean;
   authorId: string;
@@ -34,6 +35,21 @@ export interface Post {
   reactionCounts: Record<ReactionType, number>;
   canInteract: boolean;
   commentCount: number;
+}
+
+// New interface matching the Prisma PostMediaItem model structure
+export interface ClientPostMediaItem {
+  id: string;
+  url: string; // URL (relative path for uploads, full URL for links)
+  type: string; // e.g., 'image', 'video', 'link', 'unknown'
+  title?: string | null; // Optional title provided by user
+  source: string; // e.g., 'upload', 'link'
+  createdAt: string; // Assuming ISO string format from server
+  updatedAt: string; // Assuming ISO string format from server
+  postId: string;
+  // Add fields for reaction data
+  userReaction?: ReactionType | null;
+  reactionCounts?: Record<ReactionType, number>;
 }
 
 // Comment interface

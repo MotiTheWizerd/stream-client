@@ -69,11 +69,7 @@ const UsersPosts: React.FC<UsersPostsProps> = ({
     handleMediaReactionSelect,
   } = useMediaReactions({
     mediaItems: posts.flatMap((post) =>
-      (post.mediaUrls || []).map((media, index) => ({
-        ...media,
-        // Ensure consistent mediaId for the hook
-        mediaId: media.mediaId || `${post.id}_media_${index}`,
-      }))
+      (post.mediaItems || []).map((media) => media)
     ),
     apiBaseUrl,
     authToken: authToken as string | null | undefined,

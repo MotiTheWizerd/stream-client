@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import { motion } from "framer-motion";
 import { Post, postVariants, Comment } from "../../types/posts";
-import { ReactionType } from "../ReactionSelector";
+import { ReactionType } from "../Reactions";
 import PostHeader from "./PostHeader";
 import PostContent from "./PostContent";
 import PostMediaGallery from "./PostMediaGallery";
@@ -87,15 +87,15 @@ const PostCard: React.FC<PostCardProps> = ({
       {/* Post Content (text) */}
       <PostContent
         content={post.content}
-        hasMedia={post.mediaUrls?.length > 0}
+        hasMedia={post.mediaItems?.length > 0}
         isVisible={isVisible}
         authorUsername={post.author.username}
       />
 
       {/* Post Media Gallery */}
-      {isVisible && post.mediaUrls && post.mediaUrls.length > 0 && (
+      {isVisible && post.mediaItems && post.mediaItems.length > 0 && (
         <PostMediaGallery
-          mediaUrls={post.mediaUrls}
+          mediaItems={post.mediaItems}
           apiBaseUrl={apiBaseUrl}
           postId={post.id}
           onMediaClick={onOpenMediaViewer}

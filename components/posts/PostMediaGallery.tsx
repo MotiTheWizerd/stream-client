@@ -1,20 +1,20 @@
 import React, { useEffect, useState, memo, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Masonry } from "react-plock";
-import { MediaItem } from "../../types/posts";
+import { ClientPostMediaItem } from "../../types/posts"; // Import the new type
 import MediaThumbnail from "./MediaThumbnail";
-import { ReactionType } from "../ReactionSelector";
+import { ReactionType } from "../Reactions";
 
 export interface PostMediaGalleryProps {
-  mediaUrls: MediaItem[];
+  mediaItems: ClientPostMediaItem[]; // Rename prop and use new type
   apiBaseUrl: string;
   postId: string;
   onMediaClick: (
-    media: MediaItem,
+    media: ClientPostMediaItem, // Update type here
     apiBaseUrl: string,
     postId?: string,
     mediaIndex?: number,
-    allMedia?: MediaItem[]
+    allMedia?: ClientPostMediaItem[] // Update type here
   ) => void;
   userMediaReactions?: Record<string, ReactionType | null>;
   mediaReactionCounts?: Record<string, Record<ReactionType, number>>;
@@ -25,7 +25,7 @@ export interface PostMediaGalleryProps {
 }
 
 const PostMediaGallery: React.FC<PostMediaGalleryProps> = ({
-  mediaUrls,
+  mediaItems, // Use the new prop name
   apiBaseUrl,
   postId,
   onMediaClick,
@@ -50,7 +50,7 @@ const PostMediaGallery: React.FC<PostMediaGalleryProps> = ({
   }, []);
 
   // No media to display
-  if (!mediaUrls || mediaUrls.length === 0) {
+  if (!mediaItems || mediaItems.length === 0) {
     return null;
   }
 
@@ -61,13 +61,11 @@ const PostMediaGallery: React.FC<PostMediaGalleryProps> = ({
   );
 
   // Helper to get media reaction data
-  const getMediaReactionData = (media: MediaItem, index: number) => {
-    const mediaId = media.mediaId || `${postId}_media_${index}`;
+  const getMediaReactionData = (media: ClientPostMediaItem) => {
+    const mediaId = media.id; // Use the actual ID from the media item
     const currentMediaReaction = userMediaReactions[mediaId] || null;
-    // Use optimistic counts if available, otherwise use the counts from props
-    const currentReactionCounts =
-      mediaReactionCounts[mediaId] ?? media.mediaReactionCounts ?? {};
-
+    // Use reaction counts passed via props (keyed by mediaId)
+    const currentReactionCounts = mediaReactionCounts[mediaId] ?? {};
     return {
       mediaId,
       currentMediaReaction,
@@ -76,9 +74,9 @@ const PostMediaGallery: React.FC<PostMediaGalleryProps> = ({
   };
 
   // Single media case
-  if (mediaUrls.length === 1) {
+  if (mediaItems.length === 1) {
     const { mediaId, currentMediaReaction, currentReactionCounts } =
-      getMediaReactionData(mediaUrls[0], 0);
+      getMediaReactionData(mediaItems[0]);
 
     return (
       <motion.div
@@ -88,12 +86,12 @@ const PostMediaGallery: React.FC<PostMediaGalleryProps> = ({
         className="mb-4 flex justify-center"
       >
         <MediaThumbnail
-          media={mediaUrls[0]}
+          media={mediaItems[0]} // Use mediaItems
           apiBaseUrl={apiBaseUrl}
           index={0}
           onClick={onMediaClick}
           postId={postId}
-          allMedia={mediaUrls}
+          allMedia={mediaItems} // Use mediaItems
           layout="single"
           currentMediaReaction={currentMediaReaction}
           mediaReactionCounts={currentReactionCounts}
@@ -104,7 +102,7 @@ const PostMediaGallery: React.FC<PostMediaGalleryProps> = ({
   }
 
   // 2-4 items grid case
-  if (mediaUrls.length <= 4) {
+  if (mediaItems.length <= 4) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -114,16 +112,17 @@ const PostMediaGallery: React.FC<PostMediaGalleryProps> = ({
       >
         <div
           className={
-            mediaUrls.length === 2
+            mediaItems.length === 2
               ? "grid grid-cols-2 gap-3"
-              : mediaUrls.length === 3
+              : mediaItems.length === 3
               ? "grid grid-cols-1fr-1fr gap-3"
               : "grid grid-cols-2 gap-3"
           }
         >
-          {mediaUrls.map((media, index) => {
+          {mediaItems.map((media, index) => {
+            // Use mediaItems
             const { mediaId, currentMediaReaction, currentReactionCounts } =
-              getMediaReactionData(media, index);
+              getMediaReactionData(media);
             return (
               <MediaThumbnail
                 key={index}
@@ -132,7 +131,7 @@ const PostMediaGallery: React.FC<PostMediaGalleryProps> = ({
                 index={index}
                 onClick={onMediaClick}
                 postId={postId}
-                allMedia={mediaUrls}
+                allMedia={mediaItems} // Use mediaItems
                 layout="grid"
                 currentMediaReaction={currentMediaReaction}
                 mediaReactionCounts={currentReactionCounts}
@@ -147,8 +146,8 @@ const PostMediaGallery: React.FC<PostMediaGalleryProps> = ({
 
   // 5+ items masonry case
   // Determine max visible items based on screen size
-  const visibleItems = mediaUrls.slice(0, maxVisibleItems);
-  const hasHiddenItems = mediaUrls.length > maxVisibleItems;
+  const visibleItems = mediaItems.slice(0, maxVisibleItems); // Use mediaItems
+  const hasHiddenItems = mediaItems.length > maxVisibleItems; // Use mediaItems
 
   return (
     <motion.div
@@ -169,10 +168,10 @@ const PostMediaGallery: React.FC<PostMediaGalleryProps> = ({
           // Handle last visible item with "more" overlay
           const isLastVisible =
             hasHiddenItems && index === visibleItems.length - 1;
-          const hiddenCount = mediaUrls.length - maxVisibleItems;
+          const hiddenCount = mediaItems.length - maxVisibleItems; // Use mediaItems
 
           const { mediaId, currentMediaReaction, currentReactionCounts } =
-            getMediaReactionData(media, index);
+            getMediaReactionData(media);
 
           return (
             <MediaThumbnail
@@ -184,7 +183,7 @@ const PostMediaGallery: React.FC<PostMediaGalleryProps> = ({
               totalHidden={hiddenCount}
               onClick={onMediaClick}
               postId={postId}
-              allMedia={mediaUrls}
+              allMedia={mediaItems} // Use mediaItems
               layout="masonry"
               currentMediaReaction={currentMediaReaction}
               mediaReactionCounts={currentReactionCounts}
@@ -209,20 +208,18 @@ const areEqual = (
   if (prevProps.apiBaseUrl !== nextProps.apiBaseUrl) return false;
 
   // Check if media array lengths have changed
-  if (prevProps.mediaUrls.length !== nextProps.mediaUrls.length) return false;
+  if (prevProps.mediaItems.length !== nextProps.mediaItems.length) return false;
 
   // Check if any media items changed (including their reaction counts)
-  for (let i = 0; i < prevProps.mediaUrls.length; i++) {
-    const prevMedia = prevProps.mediaUrls[i];
-    const nextMedia = nextProps.mediaUrls[i];
+  for (let i = 0; i < prevProps.mediaItems.length; i++) {
+    const prevMedia = prevProps.mediaItems[i];
+    const nextMedia = nextProps.mediaItems[i];
 
     if (
-      prevMedia.media !== nextMedia.media ||
+      prevMedia.id !== nextMedia.id || // Compare by ID
+      prevMedia.url !== nextMedia.url ||
       prevMedia.type !== nextMedia.type ||
-      prevMedia.source !== nextMedia.source ||
-      // Also compare the reaction counts on the media item itself if available
-      JSON.stringify(prevMedia.mediaReactionCounts || {}) !==
-        JSON.stringify(nextMedia.mediaReactionCounts || {})
+      prevMedia.source !== nextMedia.source
     ) {
       return false;
     }

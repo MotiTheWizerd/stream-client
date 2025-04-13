@@ -1,28 +1,26 @@
 import React, { memo, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { Link, FileQuestion, Maximize, Heart } from "lucide-react";
-import { MediaItem } from "../../types/posts";
-import ReactionSelector, {
-  ReactionType,
-  reactions as reactionMap,
-} from "../ReactionSelector";
+import { Link, FileQuestion, Maximize } from "lucide-react";
+import { ClientPostMediaItem } from "../../types/posts"; // Import the new type
+import { ReactionType } from "../Reactions/ReactionSelector";
+import { ReactionDisplay } from "../Reactions";
 
 export interface MediaThumbnailProps {
-  media: MediaItem;
+  media: ClientPostMediaItem; // Use the new type
   apiBaseUrl: string;
   index: number;
   showMoreOverlay?: boolean;
   totalHidden?: number;
   onClick: (
-    media: MediaItem,
+    media: ClientPostMediaItem, // Use the new type
     apiBaseUrl: string,
     postId?: string,
     mediaIndex?: number,
-    allMedia?: MediaItem[]
+    allMedia?: ClientPostMediaItem[] // Use the new type
   ) => void;
   postId?: string;
-  allMedia?: MediaItem[];
+  allMedia?: ClientPostMediaItem[]; // Use the new type
   layout?: "masonry" | "grid" | "single";
   currentMediaReaction?: ReactionType | null;
   mediaReactionCounts?: Record<ReactionType, number>;
@@ -43,17 +41,20 @@ const MediaThumbnail: React.FC<MediaThumbnailProps> = ({
   allMedia,
   layout = "grid",
   currentMediaReaction = null,
-  mediaReactionCounts = {},
+  mediaReactionCounts = {
+    LIKE: 0,
+    LOVE: 0,
+    HAHA: 0,
+    WOW: 0,
+    SAD: 0,
+    ANGRY: 0,
+  },
   onMediaReactionSelect = () => {},
 }) => {
   const thumbnailUrl =
-    media.source === "link" ? media.media : `${apiBaseUrl}${media.media}`;
+    media.source === "link" ? media.url : `${apiBaseUrl}${media.url}`; // Use media.url
 
-  const mediaId = media.mediaId || `${postId}_media_${index}`;
-
-  // --- LOCAL STATE for selector visibility ---
-  const [isSelectorVisible, setIsSelectorVisible] = useState(false);
-  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mediaId = media.id; // Use the actual ID
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -62,15 +63,6 @@ const MediaThumbnail: React.FC<MediaThumbnailProps> = ({
     (sum, count) => sum + count,
     0
   );
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Handle external links
   if (
@@ -276,98 +268,18 @@ const MediaThumbnail: React.FC<MediaThumbnailProps> = ({
         </div>
       )}
 
-      {/* Reaction Selector (shows based on local state) */}
-      <AnimatePresence>
-        {isSelectorVisible && (
-          <div
-            className="absolute left-2 bottom-10 z-30"
-            // Keep selector open when mouse moves onto it
-            onMouseEnter={() => {
-              if (hideTimeoutRef.current) {
-                clearTimeout(hideTimeoutRef.current);
-                hideTimeoutRef.current = null;
-              }
-            }}
-            onMouseLeave={() => {
-              // Hide after a delay when leaving selector itself
-              hideTimeoutRef.current = setTimeout(() => {
-                setIsSelectorVisible(false);
-              }, 150);
-            }}
-            onClick={(e) => e.stopPropagation()} // Prevent clicks inside selector from closing it prematurely
-          >
-            <ReactionSelector
-              isVisible={true} // Controlled by AnimatePresence
-              onSelect={(reaction) => {
-                onMediaReactionSelect(mediaId, reaction);
-                // Immediately hide after selection
-                setIsSelectorVisible(false);
-                if (hideTimeoutRef.current) {
-                  clearTimeout(hideTimeoutRef.current);
-                  hideTimeoutRef.current = null;
-                }
-              }}
-            />
-          </div>
-        )}
-      </AnimatePresence>
-
       {/* Hover Toolbar */}
       <div className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-between bg-gradient-to-t from-black/60 via-black/40 to-transparent p-1 opacity-0 transition-opacity duration-200 ease-in-out group-hover:opacity-100">
         {/* Left side - Reactions */}
-        <div
-          className="relative z-20"
-          onMouseEnter={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            // Clear any pending hide timeout
-            if (hideTimeoutRef.current) {
-              clearTimeout(hideTimeoutRef.current);
-              hideTimeoutRef.current = null;
-            }
-            // Show the selector
-            setIsSelectorVisible(true);
-          }}
-          onMouseLeave={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            // Hide after a delay
-            hideTimeoutRef.current = setTimeout(() => {
-              setIsSelectorVisible(false);
-            }, 150);
-          }}
-        >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onMediaReactionSelect(
-                mediaId,
-                currentMediaReaction ? null : "LIKE"
-              );
-              // Optionally hide selector on simple heart click too
-              setIsSelectorVisible(false);
-              if (hideTimeoutRef.current) {
-                clearTimeout(hideTimeoutRef.current);
-                hideTimeoutRef.current = null;
-              }
-            }}
-            className={`text-white/80 hover:text-white p-1 ml-0.5 mb-0.5 rounded-full bg-black/30 hover:bg-black/50 transition-colors cursor-pointer ${
-              currentMediaReaction ? "text-blue-400" : ""
-            }`}
-            title={currentMediaReaction ? "Change Reaction" : "React"}
-          >
-            <Heart
-              size={layout === "single" ? 16 : 14}
-              className={currentMediaReaction ? "fill-current" : ""}
-            />
-          </button>
-
-          {/* Show reaction counts if any */}
-          {totalMediaReactions > 0 && (
-            <span className="text-xs text-white ml-1">
-              {totalMediaReactions}
-            </span>
-          )}
+        <div className="relative z-20">
+          <ReactionDisplay
+            targetId={mediaId}
+            targetType="PostMediaItem"
+            currentReaction={currentMediaReaction}
+            reactionCounts={mediaReactionCounts}
+            onReactionSelect={onMediaReactionSelect}
+            compact={false}
+          />
         </div>
 
         {/* Right side - View Full Size */}
@@ -395,7 +307,8 @@ const areEqual = (
 
   // Core properties that should trigger re-renders when changed
   if (
-    prevProps.media.media !== nextProps.media.media ||
+    prevProps.media.url !== nextProps.media.url || // Use url
+    prevProps.media.id !== nextProps.media.id || // Compare id
     prevProps.media.type !== nextProps.media.type ||
     prevProps.media.title !== nextProps.media.title ||
     prevProps.media.source !== nextProps.media.source ||
