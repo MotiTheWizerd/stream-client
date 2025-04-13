@@ -21,7 +21,7 @@ import { logout } from "@/lib/redux/slices/userSlice";
 import { useTheme } from "../context/ThemeContext";
 import GradientText from "./GradientText";
 import UserAvatar, { User as AvatarUser } from "./UserAvatar";
-import NotificationDropdown from "@/components/NotificationDropdown";
+import NotificationDropdown from "@/components/Notifications/NotificationDropdown";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

@@ -1,25 +1,25 @@
 "use client";
 
 // Add the api import
-import api from "../utils/api";
+import api from "../../utils/api";
 
 console.log("--- UsersPosts Component Executing ---"); // Add basic check
 
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Post, UsersPostsProps, Comment } from "../types/posts";
-import MediaViewer from "./posts/MediaViewer";
-import PostCard from "./posts/PostCard";
+import { Post, UsersPostsProps, Comment } from "../../types/posts";
+import MediaViewer from "./MediaViewer";
+import PostCard from "./PostCard";
 
 // Import custom hooks
-import useComments from "../hooks/useComments";
-import useReactions from "../hooks/useReactions";
-import useMediaReactions from "../hooks/useMediaReactions";
-import useMediaViewer from "../hooks/useMediaViewer";
-import usePostVisibility from "../hooks/usePostVisibility";
+import useComments from "../../hooks/useComments";
+import useReactions from "../../hooks/useReactions";
+import useMediaReactions from "../../hooks/useMediaReactions";
+import useMediaViewer from "../../hooks/useMediaViewer";
+import usePostVisibility from "../../hooks/usePostVisibility";
 
 // Animation variants
-import { containerVariants } from "../types/posts";
+import { containerVariants } from "../../types/posts";
 
 // --- Component ---
 const UsersPosts: React.FC<UsersPostsProps> = ({

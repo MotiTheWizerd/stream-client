@@ -19,7 +19,7 @@ import UserProfileVideosTab from "./UserComponents/UserProfileVideosTab";
 import UserProfileAboutTab from "./UserComponents/UserProfileAboutTab";
 import UserProfileScheduleTab from "./UserComponents/UserProfileScheduleTab";
 import UserProfileMessagesTab from "./UserComponents/UserProfileMessagesTab";
-import NewUserPost from "@/components/NewUserPost";
+import NewUserPost from "@/components/posts/NewUserPost";
 import PostsSection from "./UserComponents/PostsSection";
 
 import { ReactionType } from "@/components/ReactionSelector";

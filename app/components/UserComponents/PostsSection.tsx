@@ -1,5 +1,5 @@
 import React from "react";
-import UsersPosts, { Post } from "@/components/UsersPosts";
+import UsersPosts, { Post } from "@/components/posts/UsersPosts";
 import { ReactionType } from "@/components/ReactionSelector";
 import {
   LoadingSpinner,

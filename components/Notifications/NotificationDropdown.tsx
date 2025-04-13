@@ -248,18 +248,25 @@ const NotificationDropdown = () => {
   const handleNotificationClick = async (notification: Notification) => {
     if (!token) return;
 
-    try {
-      // Mark the notification as read
-      if (!notification.isRead) {
+    // If notification is unread, mark it as read
+    if (!notification.isRead) {
+      try {
         if (!apiBaseUrl) {
           throw new Error("API Base URL not configured");
         }
-        await fetch(`${apiBaseUrl}/api/notifications/${notification.id}/read`, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await fetch(
+          `${apiBaseUrl}/api/notifications/${notification.id}/mark-read`,
+          {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to mark notification as read");
+        }
 
         // Update local state
         setNotifications((prev) =>
@@ -267,80 +274,85 @@ const NotificationDropdown = () => {
             n.id === notification.id ? { ...n, isRead: true } : n
           )
         );
-
         if (unreadCount > 0) {
           setUnreadCount((prev) => prev - 1);
         }
+      } catch (error) {
+        console.error("Error marking notification as read:", error);
       }
+    }
 
-      // Navigate based on notification type
-      if (notification.type === "MESSAGE" && notification.sourceId) {
-        router.push(`/messages/${notification.sourceId}`);
-      } else if (notification.type === "FOLLOW" && notification.actorId) {
-        console.log("Navigating to follower profile:", notification.actorId);
-        toast.success(
-          `Checking out ${notification.content.split(" ")[1]}'s profile!`
-        );
-        router.push(`/user-profile/${notification.actorId}`);
-      }
-
-      setIsOpen(false);
-    } catch (error) {
-      console.error("Error handling notification click:", error);
-      toast.error("Failed to process notification");
+    // Handle navigation based on notification type
+    switch (notification.type) {
+      case "MESSAGE":
+        if (notification.sourceId) {
+          router.push(`/messages?chatId=${notification.sourceId}`);
+          setIsOpen(false);
+        }
+        break;
+      case "FOLLOW":
+        if (notification.actorId) {
+          router.push(`/profile/${notification.actorId}`);
+          setIsOpen(false);
+        }
+        break;
+      // Handle other notification types as needed
     }
   };
 
+  // Helper function to get appropriate icon for notification type
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case "MESSAGE":
-        return <MessageSquare size={18} className="text-blue-400" />;
+        return <MessageSquare className="text-blue-500" size={18} />;
       case "FOLLOW":
-        return (
-          <div className="relative">
-            <UserPlus size={18} className="text-green-400" />
-            <span className="absolute -top-1 -right-1 h-2 w-2 bg-green-400 rounded-full animate-pulse"></span>
-          </div>
-        );
+        return <UserPlus className="text-green-500" size={18} />;
       case "SYSTEM":
+        return <Info className="text-purple-500" size={18} />;
       default:
-        return <Info size={18} className="text-purple-400" />;
+        return <Info className="text-gray-500" size={18} />;
     }
   };
 
+  // Format the timestamp relative to now
   const formatTimestamp = (dateString: string) => {
     try {
-      return format(new Date(dateString), "MMM d, h:mm a");
+      const date = new Date(dateString);
+      return format(date, "MMM d, h:mm a");
     } catch (error) {
-      return "Unknown date";
+      return "Invalid date";
     }
   };
 
   return (
     <div className="relative" ref={dropdownRef}>
+      {/* Notification Bell Button */}
       <button
+        className="relative p-2 text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-full"
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 text-gray-300 hover:text-white transition-colors relative"
+        aria-label="Notifications"
       >
-        <Bell className="w-5 h-5" />
+        <Bell size={20} />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 inline-flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 rounded-full">
-            {unreadCount > 9 ? "9+" : unreadCount}
+          <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full">
+            {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
       </button>
 
+      {/* Dropdown */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="absolute right-0 mt-2 w-80 bg-gray-800 rounded-lg shadow-lg overflow-hidden z-50 border border-gray-700"
+            className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden z-50"
           >
-            <div className="flex items-center justify-between p-4 border-b border-gray-700">
-              <h3 className="text-lg font-semibold text-white">
+            {/* Header */}
+            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
                 Notifications
               </h3>
               <div className="flex space-x-2">
@@ -348,105 +360,102 @@ const NotificationDropdown = () => {
                   <>
                     <button
                       onClick={markAllAsRead}
-                      className="text-sm text-gray-400 hover:text-white transition-colors"
-                      title="Mark all as read"
+                      className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                      disabled={unreadCount === 0}
                     >
-                      <CheckCircle size={16} />
+                      Mark all as read
                     </button>
                     <button
                       onClick={handleClearAll}
-                      className="text-sm text-gray-400 hover:text-white transition-colors"
-                      title="Clear all"
+                      className="text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                     >
-                      <Trash2 size={16} />
+                      Clear all
                     </button>
                   </>
                 )}
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  <X size={18} />
-                </button>
               </div>
             </div>
 
+            {/* Notification List */}
             <div className="max-h-96 overflow-y-auto">
               {isLoading ? (
-                <div className="flex justify-center items-center py-8">
-                  <span className="inline-block h-6 w-6 border-t-2 border-b-2 border-purple-500 rounded-full animate-spin"></span>
+                <div className="flex justify-center items-center p-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                 </div>
               ) : notifications.length === 0 ? (
-                <div className="p-4 text-center text-gray-400">
-                  No notifications to display
+                <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+                  <p>No notifications</p>
                 </div>
               ) : (
-                <div>
+                <ul>
                   {notifications.map((notification) => (
-                    <div
+                    <li
                       key={notification.id}
-                      className={`p-4 border-b border-gray-700 hover:bg-gray-700/50 transition-colors cursor-pointer relative group ${
-                        !notification.isRead ? "bg-gray-700/30" : ""
+                      className={`border-b border-gray-200 dark:border-gray-700 last:border-b-0 ${
+                        !notification.isRead
+                          ? "bg-blue-50 dark:bg-blue-900/20"
+                          : ""
                       }`}
-                      onClick={() => handleNotificationClick(notification)}
                     >
-                      <div className="flex items-start">
-                        <div className="shrink-0 mr-3 mt-0.5">
+                      <div className="flex px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        {/* Icon column */}
+                        <div className="flex-shrink-0 mr-3 mt-1">
                           {getNotificationIcon(notification.type)}
                         </div>
-                        <div className="flex-grow pr-6">
-                          {notification.type === "FOLLOW" ? (
-                            <p
-                              className={`text-sm ${
-                                !notification.isRead
-                                  ? "text-white font-semibold"
-                                  : "text-gray-300"
-                              }`}
-                            >
-                              <span className="text-base">
-                                {notification.content.split(" ")[0]}
-                              </span>{" "}
-                              <span className="font-bold text-green-400">
-                                {notification.content.split(" ")[1]}
-                              </span>{" "}
-                              {notification.content
-                                .split(" ")
-                                .slice(2)
-                                .join(" ")}
-                            </p>
-                          ) : (
-                            <p
-                              className={`text-sm ${
-                                !notification.isRead
-                                  ? "text-white"
-                                  : "text-gray-300"
-                              }`}
-                            >
-                              {notification.content}
-                            </p>
-                          )}
-                          <p className="text-xs text-gray-400 mt-1">
+
+                        {/* Content column */}
+                        <div
+                          className="flex-1 cursor-pointer"
+                          onClick={() => handleNotificationClick(notification)}
+                        >
+                          <div
+                            className={`text-sm ${
+                              !notification.isRead
+                                ? "font-semibold text-gray-900 dark:text-white"
+                                : "text-gray-800 dark:text-gray-200"
+                            }`}
+                          >
+                            {notification.content}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             {formatTimestamp(notification.createdAt)}
-                          </p>
+                          </div>
                         </div>
-                        {!notification.isRead && (
-                          <span className="absolute top-4 right-4 h-2 w-2 bg-blue-500 rounded-full"></span>
-                        )}
+
+                        {/* Actions column */}
+                        <div className="flex-shrink-0 ml-2 flex items-start">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(notification.id);
+                            }}
+                            className="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 p-1"
+                            aria-label="Delete notification"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                          {!notification.isRead && (
+                            <div className="h-2 w-2 rounded-full bg-blue-500 ml-1"></div>
+                          )}
+                        </div>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(notification.id);
-                        }}
-                        className="absolute right-3 top-3 p-1 rounded-full text-gray-400 hover:text-red-500 hover:bg-gray-700 transition-all opacity-0 group-hover:opacity-100 hover:opacity-100 z-10"
-                        title="Delete notification"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
+            </div>
+
+            {/* Footer with view all link */}
+            <div className="border-t border-gray-200 dark:border-gray-700 p-3 text-center">
+              <button
+                onClick={() => {
+                  router.push("/notifications");
+                  setIsOpen(false);
+                }}
+                className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                View all notifications
+              </button>
             </div>
           </motion.div>
         )}

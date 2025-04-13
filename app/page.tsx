@@ -7,7 +7,7 @@ import FeaturedContent from "./components/FeaturedContent";
 import CategoryList from "./components/CategoryList";
 import TrendingStreams from "./components/TrendingStreams";
 import LiveChannels from "./components/LiveChannels";
-import UsersPosts, { Post } from "../components/UsersPosts";
+import UsersPosts, { Post } from "../components/posts/UsersPosts";
 import { ReactionType } from "../components/ReactionSelector";
 import Footer from "./components/Footer";
 // Import Redux hooks

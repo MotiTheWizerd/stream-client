@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Post } from "@/components/UsersPosts"; // Assuming Post type is exported from here
+import { Post } from "@/components/posts/UsersPosts"; // Assuming Post type is exported from here
 import { useAppSelector } from "@/lib/redux/hooks";
 
 export function useUserPosts(userId: string) {
